@@ -18,7 +18,6 @@ table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14p
 th, td { border: 1px solid #334155; padding: 8px; text-align: center; }
 th { background: #2563eb; }
 pre { white-space: pre; font-family: monospace; overflow-x: auto; padding:12px; background:#1e293b; border-radius:10px; font-size: 14px; color:#e6eef6; }
-.low-stock { color: #facc15; font-weight: bold; }
 @media (max-width: 400px) {
   h1,h2 { font-size: 1.3rem; }
   input, button { font-size: 16px; padding:12px; }
@@ -48,7 +47,7 @@ pre { white-space: pre; font-family: monospace; overflow-x: auto; padding:12px; 
 <div class="card" id="reportCard" style="display:none">
   <h2>Reports</h2>
   <pre id="reportOutput">Please generate a report...</pre>
-  <button class="btn" id="saveAndShareBtn">💾 Save + Generate + Download + Share (WhatsApp)</button>
+  <button class="btn" id="saveAndShareBtn">💾 Share Text + Download Report Image</button>
 </div>
 
 <script>
@@ -107,61 +106,70 @@ function formatBoxedTableWithLowStock(title, data){
     return text;
 }
 
-// Save, generate report, download image, and alert for WhatsApp
-function saveGenerateShareWhatsAppImage(){
-    // 1. Save inventory
-    skuData.forEach((sku,i)=>{
-        sku.opening = parseInt(document.getElementById('open'+i).value) || 0;
-        sku.closing = parseInt(document.getElementById('close'+i).value) || 0;
-    });
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(skuData));
-
-    // 2. Save daily snapshot
-    const daily = JSON.parse(localStorage.getItem(DAILY_KEY) || '[]');
-    daily.push({date:new Date().toISOString().slice(0,10), data: JSON.parse(JSON.stringify(skuData))});
-    if(daily.length>7) daily.shift();
-    localStorage.setItem(DAILY_KEY, JSON.stringify(daily));
-
-    // 3. Carry over closing stock
-    skuData.forEach(sku => { sku.opening = sku.closing; sku.closing = 0; });
-    renderInventory();
-
-    // 4. Generate report text
-    const reportText = formatBoxedTableWithLowStock(
-        '📅 Daily Inventory & Sales Report – ' + new Date().toLocaleDateString(),
-        skuData
-    );
-    const reportOutput = document.getElementById('reportOutput');
-    reportOutput.textContent = reportText;
-
-    // 5. Ensure styles applied for image capture
-    reportOutput.style.background = '#0f1724';
-    reportOutput.style.color = '#e6eef6';
-    reportOutput.style.padding = '12px';
-    reportOutput.style.borderRadius = '10px';
-    reportOutput.style.whiteSpace = 'pre-wrap';
-
-    // 6. Convert to image
-    html2canvas(reportOutput, {backgroundColor:null, scale:2}).then(canvas=>{
-        canvas.toBlob(blob=>{
-            const file = new File([blob], "Mochi_Report.png", {type:"image/png"});
-            
-            // Trigger download
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(file);
-            link.download = "Mochi_Report.png";
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            
-            alert("✅ Report image downloaded. Open WhatsApp and attach 'Mochi_Report.png' to share.");
+// Single-click: Share text + generate image
+function shareTextAndImage(){
+    try {
+        // 1. Save inventory
+        skuData.forEach((sku,i)=>{
+            sku.opening = parseInt(document.getElementById('open'+i).value) || 0;
+            sku.closing = parseInt(document.getElementById('close'+i).value) || 0;
         });
-    });
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(skuData));
+
+        // 2. Save daily snapshot
+        const daily = JSON.parse(localStorage.getItem(DAILY_KEY) || '[]');
+        daily.push({date:new Date().toISOString().slice(0,10), data: JSON.parse(JSON.stringify(skuData))});
+        if(daily.length>7) daily.shift();
+        localStorage.setItem(DAILY_KEY, JSON.stringify(daily));
+
+        // 3. Carry over closing stock
+        skuData.forEach(sku => { sku.opening = sku.closing; sku.closing = 0; });
+        renderInventory();
+
+        // 4. Generate report
+        const reportText = formatBoxedTableWithLowStock(
+            '📅 Daily Inventory & Sales Report – ' + new Date().toLocaleDateString(),
+            skuData
+        );
+        const reportOutput = document.getElementById('reportOutput');
+        reportOutput.textContent = reportText;
+
+        // 5. Share text via WhatsApp
+        const whatsappURL = `https://wa.me/?text=${encodeURIComponent(reportText)}`;
+        window.open(whatsappURL, '_blank');
+
+        // 6. Generate image
+        reportOutput.style.background = '#0f1724';
+        reportOutput.style.color = '#e6eef6';
+        reportOutput.style.padding = '12px';
+        reportOutput.style.borderRadius = '10px';
+        reportOutput.style.whiteSpace = 'pre-wrap';
+
+        html2canvas(reportOutput, {backgroundColor:null, scale:2}).then(canvas=>{
+            canvas.toBlob(blob=>{
+                const file = new File([blob], "Mochi_Report.png", {type:"image/png"});
+                
+                // Trigger download
+                const link = document.createElement("a");
+                link.href = URL.createObjectURL(file);
+                link.download = "Mochi_Report.png";
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                // Alert user to attach image manually
+                alert("✅ WhatsApp text sent!\n✅ Report image downloaded.\n\n📲 Attach 'Mochi_Report.png' to WhatsApp if you want to share the image too.");
+            });
+        });
+    } catch(err){
+        console.error("Error generating report:", err);
+        alert("⚠ An error occurred while generating the report. Please refresh and try again.");
+    }
 }
 
 // Event listeners
 document.getElementById('loadBtn').onclick = loadInventory;
-document.getElementById('saveAndShareBtn').onclick = saveGenerateShareWhatsAppImage;
+document.getElementById('saveAndShareBtn').onclick = shareTextAndImage;
 
 </script>
 </div>
