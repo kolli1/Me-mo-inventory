@@ -2,21 +2,28 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Mochi Inventory</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mochi Inventory App</title>
 <style>
-  body { font-family: Arial, sans-serif; background: #0f1724; color: #e6eef6; margin:0; padding:0; }
-  .container { max-width: 600px; margin: auto; padding: 12px; }
-  .card { background: #1e293b; padding: 20px; margin-bottom: 15px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
-  h1, h2 { margin: 6px 0; text-align: center; }
-  input, button { font-family: inherit; padding: 10px; border-radius: 8px; margin-top: 6px; width: 100%; box-sizing: border-box; font-size: 16px; border: none; }
-  input { background: #1e293b; color: #e6eef6; }
-  .btn { cursor: pointer; margin-top: 10px; background: #2563eb; color: #fff; font-weight: bold; transition: 0.3s; }
-  .btn:hover { background: #3b82f6; }
-  table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-  th, td { border: 1px solid #334155; padding: 8px; text-align: center; }
-  th { background: #2563eb; }
-  pre { white-space: pre; font-family: monospace; overflow-x: auto; padding:10px; background:#1e293b; border-radius:8px; }
+body { font-family: Arial, sans-serif; background: #0f1724; color: #e6eef6; margin:0; padding:0; }
+.container { max-width: 500px; margin: auto; padding: 15px; }
+.card { background: #1e293b; padding: 18px; margin-bottom: 15px; border-radius: 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.3); }
+h1,h2 { margin: 10px 0; text-align: center; font-size: 1.5rem; }
+input, button { font-family: inherit; padding: 14px; border-radius: 10px; margin-top: 8px; width: 100%; box-sizing: border-box; font-size: 18px; border: none; }
+input { background: #1e293b; color: #e6eef6; }
+.btn { cursor: pointer; margin-top: 12px; background: #2563eb; color: #fff; font-weight: bold; transition: 0.3s; }
+.btn:hover { background: #3b82f6; }
+.table-wrapper { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; min-width: 300px; }
+th, td { border: 1px solid #334155; padding: 8px; text-align: center; }
+th { background: #2563eb; }
+pre { white-space: pre; font-family: monospace; overflow-x: auto; padding:12px; background:#1e293b; border-radius:10px; font-size: 14px; }
+.low-stock { color: #facc15; font-weight: bold; }
+@media (max-width: 400px) {
+  h1,h2 { font-size: 1.3rem; }
+  input, button { font-size: 16px; padding:12px; }
+  table th, table td { padding: 6px; font-size: 12px; }
+}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 </head>
@@ -30,19 +37,21 @@
 
 <div class="card" id="inventoryCard" style="display:none">
   <h2>Inventory Management</h2>
-  <table id="skuTable">
-    <thead><tr><th>SKU</th><th>Opening</th><th>Closing</th></tr></thead>
-    <tbody id="skuList"></tbody>
-  </table>
+  <div class="table-wrapper">
+    <table id="skuTable">
+      <thead><tr><th>SKU</th><th>Opening</th><th>Closing</th></tr></thead>
+      <tbody id="skuList"></tbody>
+    </table>
+  </div>
   <button class="btn" id="saveInventory">Save Inventory</button>
 </div>
 
 <div class="card" id="reportCard" style="display:none">
   <h2>Reports</h2>
-  <button class="btn" id="combinedReportBtn">Generate Combined Report</button>
+  <button class="btn" id="combinedReportBtn">Generate Daily Report</button>
   <button class="btn" id="weeklyReportBtn">Generate Weekly Summary</button>
   <pre id="reportOutput">Please generate a report...</pre>
-  <button class="btn" id="shareWhatsApp">Share to WhatsApp</button>
+  <button class="btn" id="shareWhatsApp">Share Report as Image (WhatsApp)</button>
   <button class="btn" id="shareImageBtn">Share Report as Image</button>
 </div>
 
@@ -52,96 +61,131 @@ let skuData = [];
 const STORAGE_KEY = 'mochi_inventory';
 const DAILY_KEY = 'mochi_daily';
 
+// Render inventory table
 function renderInventory(){
-  let html='';
-  skuData.forEach((sku,i)=>{
-    html+=`<tr><td>${sku.name}</td><td><input type='number' id='open${i}' value='${sku.opening}' min='0'></td><td><input type='number' id='close${i}' value='${sku.closing}' min='0'></td></tr>`;
-  });
-  document.getElementById('skuList').innerHTML = html;
+    let html='';
+    skuData.forEach((sku,i)=>{
+        html+=`<tr><td>${sku.name}</td><td><input type='number' id='open${i}' value='${sku.opening}' min='0'></td><td><input type='number' id='close${i}' value='${sku.closing}' min='0'></td></tr>`;
+    });
+    document.getElementById('skuList').innerHTML = html;
 }
 
+// Load inventory
 function loadInventory(){
-  try{
     const saved = localStorage.getItem(STORAGE_KEY);
     skuData = saved ? JSON.parse(saved) : DEFAULT_SKUS.map(name=>({name, opening:0, closing:0}));
     renderInventory();
-    document.getElementById('inventoryCard').style.display='block';
-    document.getElementById('reportCard').style.display='block';
-  } catch(e){ alert('Error loading inventory: '+e); }
+    document.getElementById('inventoryCard').style.display = 'block';
+    document.getElementById('reportCard').style.display = 'block';
 }
 
+// Save inventory and carry over closing stock
 function saveInventory(){
-  try{
-    // Update SKU data from inputs
     skuData.forEach((sku,i)=>{
-      sku.opening = Math.max(0, +document.getElementById('open'+i).value);
-      sku.closing = Math.max(0, +document.getElementById('close'+i).value);
+        sku.opening = +document.getElementById('open'+i).value || 0;
+        sku.closing = +document.getElementById('close'+i).value || 0;
     });
-
-    // Save current day's data
     localStorage.setItem(STORAGE_KEY, JSON.stringify(skuData));
-
-    // Update daily history
+    
     const daily = JSON.parse(localStorage.getItem(DAILY_KEY) || '[]');
-    daily.push({date: new Date().toISOString().slice(0,10), data: JSON.parse(JSON.stringify(skuData))});
+    daily.push({date:new Date().toISOString().slice(0,10), data: JSON.parse(JSON.stringify(skuData))});
     if(daily.length>7) daily.shift();
     localStorage.setItem(DAILY_KEY, JSON.stringify(daily));
-
-    // Carry over closing stock to next day as opening stock
+    
     skuData.forEach(sku => { sku.opening = sku.closing; sku.closing = 0; });
-
-    renderInventory(); // Update input fields
-    alert('Inventory saved locally and closing stock carried over to next day!');
-  } catch(e){ alert('Error saving inventory: '+e); }
+    renderInventory();
+    alert('Inventory saved and closing stock carried over to next day.');
 }
 
+// Boxed table formatter
 function formatBoxedTableReport(title, data){
     const pad = (str, len) => str.toString().padEnd(len, ' ');
     const skuLen = 12, openLen = 7, closeLen = 7, soldLen = 5;
     let text = title + '\n';
-    text += '┌' + '─'.repeat(skuLen) + '┬' + '─'.repeat(openLen) + '┬' + '─'.repeat(closeLen) + '┬' + '─'.repeat(soldLen) + '┐\n';
-    text += '│' + pad('SKU', skuLen) + '│' + pad('Opening', openLen) + '│' + pad('Closing', closeLen) + '│' + pad('Sold', soldLen) + '│\n';
-    text += '├' + '─'.repeat(skuLen) + '┼' + '─'.repeat(openLen) + '┼' + '─'.repeat(closeLen) + '┼' + '─'.repeat(soldLen) + '┤\n';
+    text += '┌'+'─'.repeat(skuLen)+'┬'+'─'.repeat(openLen)+'┬'+'─'.repeat(closeLen)+'┬'+'─'.repeat(soldLen)+'┐\n';
+    text += '│'+pad('SKU',skuLen)+'│'+pad('Opening',openLen)+'│'+pad('Closing',closeLen)+'│'+pad('Sold',soldLen)+'│\n';
+    text += '├'+'─'.repeat(skuLen)+'┼'+'─'.repeat(openLen)+'┼'+'─'.repeat(closeLen)+'┼'+'─'.repeat(soldLen)+'┤\n';
     data.forEach(sku=>{
-        let sold = Math.max(0, sku.opening - sku.closing);
-        text += '│' + pad(sku.name, skuLen) + '│' + pad(sku.opening, openLen) + '│' + pad(sku.closing, closeLen) + '│' + pad(sold, soldLen) + '│\n';
+        const soldVal = sku.sold !== undefined ? sku.sold : Math.max(0, sku.opening - sku.closing);
+        const lowStockNote = sku.closing < 15 ? ' ⚠ To be fulfilled' : '';
+        text += '│'+pad(sku.name,skuLen)+'│'+pad(sku.opening,openLen)+'│'+pad(sku.closing,closeLen)+'│'+pad(soldVal,soldLen)+'│'+lowStockNote+'\n';
     });
-    text += '└' + '─'.repeat(skuLen) + '┴' + '─'.repeat(openLen) + '┴' + '─'.repeat(closeLen) + '┴' + '─'.repeat(soldLen) + '┘\n';
+    text += '└'+'─'.repeat(skuLen)+'┴'+'─'.repeat(openLen)+'┴'+'─'.repeat(closeLen)+'┴'+'─'.repeat(soldLen)+'┘\n';
     return text;
 }
 
+// Generate daily report
 function generateCombinedReport(){
-  document.getElementById('reportOutput').textContent = formatBoxedTableReport('📅 Daily Inventory & Sales Report – ' + new Date().toLocaleDateString(), skuData);
+    document.getElementById('reportOutput').textContent = formatBoxedTableReport('📅 Daily Inventory & Sales Report – ' + new Date().toLocaleDateString(), skuData);
 }
 
+// Generate weekly summary
 function generateWeeklySummary(){
-  try{
     const daily = JSON.parse(localStorage.getItem(DAILY_KEY) || '[]');
-    if(daily.length===0){ document.getElementById('reportOutput').textContent='No weekly data available'; return; }
+    if(daily.length===0){ 
+        document.getElementById('reportOutput').textContent='No weekly data available'; 
+        return; 
+    }
+    
     const totals = {};
-    DEFAULT_SKUS.forEach(name=>totals[name]=0);
-    daily.forEach(day=>{ day.data.forEach(sku=>{ totals[sku.name]+=Math.max(0, sku.opening-sku.closing); }); });
-    const summaryData = DEFAULT_SKUS.map(name=>({name, opening:0, closing:0, sold:totals[name]}));
-    document.getElementById('reportOutput').textContent = formatBoxedTableReport('📅 Weekly Summary – Last '+daily.length+' Days', summaryData);
-  } catch(e){ alert('Error generating weekly summary: '+e); }
+    const lastDayClosing = {};
+    DEFAULT_SKUS.forEach(name => { totals[name] = 0; lastDayClosing[name] = 0; });
+
+    daily.forEach(day => { 
+        day.data.forEach(sku => { 
+            totals[sku.name] += Math.max(0, sku.opening - sku.closing); 
+            lastDayClosing[sku.name] = sku.closing; 
+        }); 
+    });
+
+    const summaryData = DEFAULT_SKUS.map(name => ({
+        name,
+        opening: 0,
+        closing: lastDayClosing[name],
+        sold: totals[name]
+    }));
+
+    document.getElementById('reportOutput').textContent = formatBoxedTableReport('📅 Weekly Inventory & Sales Summary – Last '+daily.length+' Days', summaryData);
 }
 
-function shareWhatsApp(){
-  const msg = document.getElementById('reportOutput').textContent;
-  if(!msg || msg==='Please generate a report...'){ alert('Generate a report first'); return; }
-  window.open('https://wa.me/?text='+encodeURIComponent(msg));
+// Share report as image (manual upload to WhatsApp)
+function shareReportAsImageWhatsApp(){
+    const reportDiv = document.getElementById('reportOutput');
+    if(!reportDiv.textContent.trim() || reportDiv.textContent==='Please generate a report...'){ 
+        alert('Generate a report first'); 
+        return; 
+    }
+    html2canvas(reportDiv, {backgroundColor:'#0f1724'}).then(canvas=>{
+        canvas.toBlob(blob=>{
+            const file = new File([blob], "report.png", {type:"image/png"});
+            const url = URL.createObjectURL(file);
+            alert("Report image generated. Download it and share on WhatsApp manually.");
+            window.open(url, '_blank');
+        });
+    });
 }
 
+// Export report as image
 function shareAsImage(){
-  const reportDiv=document.getElementById('reportOutput');
-  if(!reportDiv.textContent.trim() || reportDiv.textContent==='Please generate a report...'){ alert('Generate a report first'); return; }
-  html2canvas(reportDiv, {backgroundColor:'#0f1724'}).then(canvas=>{
-    const imgData=canvas.toDataURL('image/png');
-    const imgWindow=window.open('', '_blank');
-    imgWindow.document.write('<img src="'+imgData+'" style="width:100%;">');
-  });
+    const reportDiv=document.getElementById('reportOutput');
+    if(!reportDiv.textContent.trim() || reportDiv.textContent==='Please generate a report...'){ alert('Generate a report first'); return; }
+    html2canvas(reportDiv, {backgroundColor:'#0f1724'}).then(canvas=>{
+        const imgData=canvas.toDataURL('image/png');
+        const imgWindow=window.open('', '_blank');
+        imgWindow.document.write('<img src="'+imgData+'" style="width:100%;">');
+    });
 }
 
-// Event Listeners
-document.getElementById('loadBtn').onclick=loadInventory;
-document.getElementById('saveInventory').
+// Event listeners
+document.getElementById('loadBtn').onclick = loadInventory;
+document.getElementById('saveInventory').onclick = saveInventory;
+document.getElementById('combinedReportBtn').onclick = generateCombinedReport;
+document.getElementById('weeklyReportBtn').onclick = generateWeeklySummary;
+document.getElementById('shareWhatsApp').onclick = shareReportAsImageWhatsApp;
+document.getElementById('shareImageBtn').onclick = shareAsImage;
+
+</script>
+
+</div>
+</body>
+</html>
