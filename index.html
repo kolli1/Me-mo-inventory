@@ -20,6 +20,7 @@
   pre { white-space: pre-wrap; font-family: monospace; overflow-x: auto; }
   @media (min-width:600px){ input, select, button { width:auto; } }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 </head>
 <body>
 <div class="container">
@@ -53,6 +54,7 @@
   <button class="btn" id="weeklyReportBtn">Generate Weekly Summary</button>
   <pre id="reportOutput"></pre>
   <button class="btn" id="shareWhatsApp">Share to WhatsApp</button>
+  <button class="btn" id="shareImageBtn">Share Report as Image</button>
 </div>
 
 <script>
@@ -125,6 +127,15 @@ document.getElementById('weeklyReportBtn').onclick=generateWeeklySummary;
 document.getElementById('shareWhatsApp').onclick=()=>{
   let msg=document.getElementById('reportOutput').textContent;
   window.open('https://wa.me/?text='+encodeURIComponent(msg));
+};
+
+document.getElementById('shareImageBtn').onclick=function(){
+  const reportDiv=document.getElementById('reportOutput');
+  html2canvas(reportDiv, {backgroundColor:'#0f1724'}).then(canvas=>{
+    const imgData=canvas.toDataURL('image/png');
+    const imgWindow=window.open('', '_blank');
+    imgWindow.document.write('<img src="'+imgData+'" style="width:100%;">');
+  });
 };
 </script>
 
