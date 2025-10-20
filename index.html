@@ -43,16 +43,12 @@ pre { white-space: pre; font-family: monospace; overflow-x: auto; padding:12px; 
       <tbody id="skuList"></tbody>
     </table>
   </div>
-  <button class="btn" id="saveInventory">Save Inventory</button>
 </div>
 
 <div class="card" id="reportCard" style="display:none">
   <h2>Reports</h2>
-  <button class="btn" id="combinedReportBtn">Generate Daily Report</button>
-  <button class="btn" id="weeklyReportBtn">Generate Weekly Summary</button>
   <pre id="reportOutput">Please generate a report...</pre>
-  <button class="btn" id="shareWhatsApp">Share Report as Image (WhatsApp)</button>
-  <button class="btn" id="shareImageBtn">Share Report as Image</button>
+  <button class="btn" id="saveAndShareBtn">💾 Save + Generate Report + Share (WhatsApp)</button>
 </div>
 
 <script>
@@ -85,86 +81,58 @@ function loadInventory(){
     document.getElementById('reportCard').style.display = 'block';
 }
 
-// Save inventory
-function saveInventory(){
-    skuData.forEach((sku,i)=>{
-        sku.opening = parseInt(document.getElementById('open'+i).value) || 0;
-        sku.closing = parseInt(document.getElementById('close'+i).value) || 0;
-    });
-
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(skuData));
-
-    // Save daily snapshot
-    const daily = JSON.parse(localStorage.getItem(DAILY_KEY) || '[]');
-    daily.push({date:new Date().toISOString().slice(0,10), data: JSON.parse(JSON.stringify(skuData))});
-    if(daily.length>7) daily.shift();
-    localStorage.setItem(DAILY_KEY, JSON.stringify(daily));
-
-    // Carry over closing stock
-    skuData.forEach(sku => { sku.opening = sku.closing; sku.closing = 0; });
-    renderInventory();
-    alert('Inventory saved and closing stock carried over to next day.');
-}
-
-// Boxed table formatter
-function formatBoxedTableReport(title, data){
+// Boxed table formatter with low stock summary
+function formatBoxedTableWithLowStock(title, data){
     const pad = (str, len) => str.toString().padEnd(len, ' ');
     const skuLen = 12, openLen = 7, closeLen = 7, soldLen = 5;
     let text = title + '\n';
     text += '┌'+'─'.repeat(skuLen)+'┬'+'─'.repeat(openLen)+'┬'+'─'.repeat(closeLen)+'┬'+'─'.repeat(soldLen)+'┐\n';
     text += '│'+pad('SKU',skuLen)+'│'+pad('Opening',openLen)+'│'+pad('Closing',closeLen)+'│'+pad('Sold',soldLen)+'│\n';
     text += '├'+'─'.repeat(skuLen)+'┼'+'─'.repeat(openLen)+'┼'+'─'.repeat(closeLen)+'┼'+'─'.repeat(soldLen)+'┤\n';
+    
+    let lowStockSKUs = [];
+    
     data.forEach(sku=>{
         const soldVal = sku.sold !== undefined ? sku.sold : Math.max(0, sku.opening - sku.closing);
-        const lowStockNote = sku.closing < 15 ? ' ⚠ To be fulfilled' : '';
-        text += '│'+pad(sku.name,skuLen)+'│'+pad(sku.opening,openLen)+'│'+pad(sku.closing,closeLen)+'│'+pad(soldVal,soldLen)+'│'+lowStockNote+'\n';
+        if(sku.closing < 15) lowStockSKUs.push(sku.name);
+        text += '│'+pad(sku.name,skuLen)+'│'+pad(sku.opening,openLen)+'│'+pad(sku.closing,closeLen)+'│'+pad(soldVal,soldLen)+'│\n';
     });
+    
     text += '└'+'─'.repeat(skuLen)+'┴'+'─'.repeat(openLen)+'┴'+'─'.repeat(closeLen)+'┴'+'─'.repeat(soldLen)+'┘\n';
+    
+    // Low stock summary in plain text
+    if(lowStockSKUs.length > 0){
+        text += '\n⚠ Low Stock – To be Fulfilled: ' + lowStockSKUs.join(', ');
+    }
+    
     return text;
 }
 
-// Daily report
-function generateCombinedReport(){
-    document.getElementById('reportOutput').textContent = formatBoxedTableReport('📅 Daily Inventory & Sales Report – ' + new Date().toLocaleDateString(), skuData);
-}
-
-// Weekly summary
-function generateWeeklySummary(){
-    const daily = JSON.parse(localStorage.getItem(DAILY_KEY) || '[]');
-    if(daily.length===0){ 
-        document.getElementById('reportOutput').textContent='No weekly data available'; 
-        return; 
-    }
-
-    const totals = {};
-    const lastDayClosing = {};
-    DEFAULT_SKUS.forEach(name => { totals[name] = 0; lastDayClosing[name] = 0; });
-
-    daily.forEach(day => { 
-        day.data.forEach(sku => { 
-            totals[sku.name] += Math.max(0, sku.opening - sku.closing); 
-            lastDayClosing[sku.name] = sku.closing; 
-        }); 
+// Single-click: save inventory, generate report, share as image
+function saveGenerateShareWhatsApp(){
+    // 1. Save inventory
+    skuData.forEach((sku,i)=>{
+        sku.opening = parseInt(document.getElementById('open'+i).value) || 0;
+        sku.closing = parseInt(document.getElementById('close'+i).value) || 0;
     });
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(skuData));
 
-    const summaryData = DEFAULT_SKUS.map(name => ({
-        name,
-        opening: 0,
-        closing: lastDayClosing[name],
-        sold: totals[name]
-    }));
+    // 2. Save daily snapshot
+    const daily = JSON.parse(localStorage.getItem(DAILY_KEY) || '[]');
+    daily.push({date:new Date().toISOString().slice(0,10), data: JSON.parse(JSON.stringify(skuData))});
+    if(daily.length>7) daily.shift();
+    localStorage.setItem(DAILY_KEY, JSON.stringify(daily));
 
-    document.getElementById('reportOutput').textContent = formatBoxedTableReport('📅 Weekly Inventory & Sales Summary – Last '+daily.length+' Days', summaryData);
-}
+    // 3. Carry over closing stock
+    skuData.forEach(sku => { sku.opening = sku.closing; sku.closing = 0; });
+    renderInventory();
 
-// Share report as image (WhatsApp/manual download)
-function shareReportAsImageWhatsApp(){
-    const reportDiv = document.getElementById('reportOutput');
-    if(!reportDiv.textContent.trim() || reportDiv.textContent==='Please generate a report...'){ 
-        alert('Generate a report first'); 
-        return; 
-    }
-    html2canvas(reportDiv, {backgroundColor:'#0f1724'}).then(canvas=>{
+    // 4. Generate report with low stock summary
+    const reportText = formatBoxedTableWithLowStock('📅 Daily Inventory & Sales Report – ' + new Date().toLocaleDateString(), skuData);
+    document.getElementById('reportOutput').textContent = reportText;
+
+    // 5. Convert to image & open for WhatsApp sharing
+    html2canvas(document.getElementById('reportOutput'), {backgroundColor:'#0f1724'}).then(canvas=>{
         canvas.toBlob(blob=>{
             const file = new File([blob], "report.png", {type:"image/png"});
             const url = URL.createObjectURL(file);
@@ -174,27 +142,11 @@ function shareReportAsImageWhatsApp(){
     });
 }
 
-// Share as image (general)
-function shareAsImage(){
-    const reportDiv=document.getElementById('reportOutput');
-    if(!reportDiv.textContent.trim() || reportDiv.textContent==='Please generate a report...'){ alert('Generate a report first'); return; }
-    html2canvas(reportDiv, {backgroundColor:'#0f1724'}).then(canvas=>{
-        const imgData=canvas.toDataURL('image/png');
-        const imgWindow=window.open('', '_blank');
-        imgWindow.document.write('<img src="'+imgData+'" style="width:100%;">');
-    });
-}
-
 // Event listeners
 document.getElementById('loadBtn').onclick = loadInventory;
-document.getElementById('saveInventory').onclick = saveInventory;
-document.getElementById('combinedReportBtn').onclick = generateCombinedReport;
-document.getElementById('weeklyReportBtn').onclick = generateWeeklySummary;
-document.getElementById('shareWhatsApp').onclick = shareReportAsImageWhatsApp;
-document.getElementById('shareImageBtn').onclick = shareAsImage;
+document.getElementById('saveAndShareBtn').onclick = saveGenerateShareWhatsApp;
 
 </script>
-
 </div>
 </body>
 </html>
