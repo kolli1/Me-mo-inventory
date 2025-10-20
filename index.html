@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Mochi Inventory</title>
+<style>
+  body { font-family: Arial, sans-serif; background: #0f1724; color: #e6eef6; margin:0; padding:0; }
+  .container { max-width: 600px; margin: auto; padding: 12px; }
+  .card { background: #1e293b; padding: 20px; margin-bottom: 15px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+  h1, h2, h3 { margin: 6px 0; text-align: center; }
+  input, select, button { font-family: inherit; padding: 10px; border-radius: 8px; margin-top: 6px; width: 100%; box-sizing: border-box; font-size: 16px; border: none; }
+  select { background: #334155; color: #e6eef6; }
+  input { background: #1e293b; color: #e6eef6; }
+  .btn { cursor: pointer; margin-top: 10px; background: #2563eb; color: #fff; font-weight: bold; transition: 0.3s; }
+  .btn:hover { background: #3b82f6; }
+  table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+  th, td { border: 1px solid #334155; padding: 8px; text-align: center; }
+  th { background: #2563eb; }
+  pre { white-space: pre-wrap; font-family: monospace; overflow-x: auto; }
+  @media (min-width:600px){ input, select, button { width:auto; } }
+</style>
+</head>
+<body>
+<div class="container">
+
+<div class="card">
+  <h1>🍨 Mochi Inventory</h1>
+  <label>Select Outlet:</label>
+  <select id="outletSelect">
+    <option value="">--Select--</option>
+    <option value="FilmNagar">Film Nagar</option>
+    <option value="Manikonda">Manikonda</option>
+    <option value="Kondapur">Kondapur</option>
+    <option value="Gachibowli">Gachibowli</option>
+  </select>
+  <button class="btn" id="loadBtn">Load Inventory</button>
+</div>
+
+<div class="card" id="inventoryCard" style="display:none">
+  <h2>Inventory Management</h2>
+  <table id="skuTable">
+    <thead><tr><th>SKU</th><th>Opening</th><th>Closing</th></tr></thead>
+    <tbody id="skuList"></tbody>
+  </table>
+  <button class="btn" id="saveInventory">Save Inventory</button>
+</div>
+
+<div class="card" id="reportCard" style="display:none">
+  <h2>Reports</h2>
+  <button class="btn" id="dailyReportBtn">Generate Daily Report</button>
+  <button class="btn" id="salesReportBtn">Generate Sales Report</button>
+  <button class="btn" id="weeklyReportBtn">Generate Weekly Summary</button>
+  <pre id="reportOutput"></pre>
+  <button class="btn" id="shareWhatsApp">Share to WhatsApp</button>
+</div>
+
+<script>
+const DEFAULT_SKUS = ['Vanilla','Strawberry','Chocolate','Mango','Grape','Muskmelon','Coconut','Brownie','Paan'];
+let skuData = [];
+const OUTLET_KEYS = { FilmNagar: 'inventory_FilmNagar', Manikonda: 'inventory_Manikonda', Kondapur: 'inventory_Kondapur', Gachibowli: 'inventory_Gachibowli' };
+const DAILY_KEYS = { FilmNagar: 'daily_FilmNagar', Manikonda: 'daily_Manikonda', Kondapur: 'daily_Kondapur', Gachibowli: 'daily_Gachibowli' };
+
+function renderInventory(){
+  let html='';
+  skuData.forEach((sku,i)=>{ html+=`<tr><td>${sku.name}</td><td><input type='number' id='open${i}' value='${sku.opening}'></td><td><input type='number' id='close${i}' value='${sku.closing}'></td></tr>`; });
+  document.getElementById('skuList').innerHTML = html;
+}
+
+function loadInventory(){
+  const outlet = document.getElementById('outletSelect').value;
+  if(!outlet){ alert('Select an outlet'); return; }
+  const saved = localStorage.getItem(OUTLET_KEYS[outlet]);
+  skuData = saved ? JSON.parse(saved) : DEFAULT_SKUS.map(name=>({name, opening:0, closing:0}));
+  renderInventory();
+  document.getElementById('inventoryCard').style.display='block';
+  document.getElementById('reportCard').style.display='block';
+}
+
+function saveInventory(){
+  const outlet = document.getElementById('outletSelect').value;
+  skuData.forEach((sku,i)=>{ sku.opening = +document.getElementById('open'+i).value; sku.closing = +document.getElementById('close'+i).value; });
+  localStorage.setItem(OUTLET_KEYS[outlet], JSON.stringify(skuData));
+  const daily = JSON.parse(localStorage.getItem(DAILY_KEYS[outlet]) || '[]');
+  daily.push({date: new Date().toISOString().slice(0,10), data: skuData});
+  if(daily.length>7) daily.shift();
+  localStorage.setItem(DAILY_KEYS[outlet], JSON.stringify(daily));
+  alert('Inventory saved locally');
+}
+
+function formatTableReport(title, data){
+  let text = title+'\n';
+  text += 'SKU | Opening | Closing | Sold\n';
+  text += '--------------------------------\n';
+  data.forEach(sku=>{ let sold=sku.opening-sku.closing; text+=`${sku.name} | ${sku.opening} | ${sku.closing} | ${sold}\n`; });
+  return text;
+}
+
+function generateDailyReport(){ document.getElementById('reportOutput').textContent = formatTableReport('📅 Daily Inventory Report – '+new Date().toLocaleDateString(), skuData); }
+function generateSalesReport(){
+  let text='📅 Sales Report – '+new Date().toLocaleDateString()+'\nSKU | Sold\n';
+  text += '---------------------\n';
+  skuData.forEach(sku=>{ let sold = sku.opening - sku.closing; text+=`${sku.name} | ${sold}\n`; });
+  document.getElementById('reportOutput').textContent = text;
+}
+function generateWeeklySummary(){
+  const outlet = document.getElementById('outletSelect').value;
+  if(!outlet){ alert('Select an outlet'); return; }
+  const daily = JSON.parse(localStorage.getItem(DAILY_KEYS[outlet]) || '[]');
+  if(daily.length===0){ document.getElementById('reportOutput').textContent='No weekly data available'; return; }
+  let text = '📅 Weekly Summary – Last '+daily.length+' Days\nSKU | Total Sold\n';
+  text += '-------------------------\n';
+  const totals = {};
+  DEFAULT_SKUS.forEach(name=>totals[name]=0);
+  daily.forEach(day=>{ day.data.forEach(sku=>{ totals[sku.name] += sku.opening - sku.closing; }); });
+  DEFAULT_SKUS.forEach(name=>text+=`${name} | ${totals[name]}\n`);
+  document.getElementById('reportOutput').textContent=text;
+}
+
+document.getElementById('loadBtn').onclick=loadInventory;
+document.getElementById('saveInventory').onclick=saveInventory;
+document.getElementById('dailyReportBtn').onclick=generateDailyReport;
+document.getElementById('salesReportBtn').onclick=generateSalesReport;
+document.getElementById('weeklyReportBtn').onclick=generateWeeklySummary;
+document.getElementById('shareWhatsApp').onclick=()=>{
+  let msg=document.getElementById('reportOutput').textContent;
+  window.open('https://wa.me/?text='+encodeURIComponent(msg));
+};
+</script>
+
+</div>
+</body>
+</html>
