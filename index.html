@@ -93,14 +93,13 @@ function formatBoxedTableWithLowStock(title, data){
     let lowStockSKUs = [];
     
     data.forEach(sku=>{
-        const soldVal = sku.sold !== undefined ? sku.sold : Math.max(0, sku.opening - sku.closing);
+        const soldVal = Math.max(0, sku.opening - sku.closing);
         if(sku.closing < 15) lowStockSKUs.push(sku.name);
         text += '│'+pad(sku.name,skuLen)+'│'+pad(sku.opening,openLen)+'│'+pad(sku.closing,closeLen)+'│'+pad(soldVal,soldLen)+'│\n';
     });
     
     text += '└'+'─'.repeat(skuLen)+'┴'+'─'.repeat(openLen)+'┴'+'─'.repeat(closeLen)+'┴'+'─'.repeat(soldLen)+'┘\n';
     
-    // Low stock summary in plain text
     if(lowStockSKUs.length > 0){
         text += '\n⚠ Low Stock – To be Fulfilled: ' + lowStockSKUs.join(', ');
     }
