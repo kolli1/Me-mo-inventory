@@ -17,7 +17,7 @@
   table { width: 100%; border-collapse: collapse; margin-top: 10px; }
   th, td { border: 1px solid #334155; padding: 8px; text-align: center; }
   th { background: #2563eb; }
-  pre { white-space: pre-wrap; font-family: monospace; overflow-x: auto; }
+  pre { white-space: pre-wrap; font-family: monospace; overflow-x: auto; padding:10px; background:#1e293b; border-radius:8px; }
   @media (min-width:600px){ input, select, button { width:auto; } }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -52,7 +52,7 @@
   <button class="btn" id="dailyReportBtn">Generate Daily Report</button>
   <button class="btn" id="salesReportBtn">Generate Sales Report</button>
   <button class="btn" id="weeklyReportBtn">Generate Weekly Summary</button>
-  <pre id="reportOutput"></pre>
+  <pre id="reportOutput">Please generate a report...</pre>
   <button class="btn" id="shareWhatsApp">Share to WhatsApp</button>
   <button class="btn" id="shareImageBtn">Share Report as Image</button>
 </div>
@@ -65,7 +65,9 @@ const DAILY_KEYS = { FilmNagar: 'daily_FilmNagar', Manikonda: 'daily_Manikonda',
 
 function renderInventory(){
   let html='';
-  skuData.forEach((sku,i)=>{ html+=`<tr><td>${sku.name}</td><td><input type='number' id='open${i}' value='${sku.opening}'></td><td><input type='number' id='close${i}' value='${sku.closing}'></td></tr>`; });
+  skuData.forEach((sku,i)=>{
+    html+=`<tr><td>${sku.name}</td><td><input type='number' id='open${i}' value='${sku.opening}' min='0'></td><td><input type='number' id='close${i}' value='${sku.closing}' min='0'></td></tr>`;
+  });
   document.getElementById('skuList').innerHTML = html;
 }
 
@@ -81,10 +83,14 @@ function loadInventory(){
 
 function saveInventory(){
   const outlet = document.getElementById('outletSelect').value;
-  skuData.forEach((sku,i)=>{ sku.opening = +document.getElementById('open'+i).value; sku.closing = +document.getElementById('close'+i).value; });
+  if(!outlet){ alert('Select an outlet'); return; }
+  skuData.forEach((sku,i)=>{
+    sku.opening = Math.max(0, +document.getElementById('open'+i).value);
+    sku.closing = Math.max(0, +document.getElementById('close'+i).value);
+  });
   localStorage.setItem(OUTLET_KEYS[outlet], JSON.stringify(skuData));
   const daily = JSON.parse(localStorage.getItem(DAILY_KEYS[outlet]) || '[]');
-  daily.push({date: new Date().toISOString().slice(0,10), data: skuData});
+  daily.push({date: new Date().toISOString().slice(0,10), data: JSON.parse(JSON.stringify(skuData))});
   if(daily.length>7) daily.shift();
   localStorage.setItem(DAILY_KEYS[outlet], JSON.stringify(daily));
   alert('Inventory saved locally');
@@ -93,50 +99,63 @@ function saveInventory(){
 function formatTableReport(title, data){
   let text = title+'\n';
   text += 'SKU | Opening | Closing | Sold\n';
-  text += '--------------------------------\n';
-  data.forEach(sku=>{ let sold=sku.opening-sku.closing; text+=`${sku.name} | ${sku.opening} | ${sku.closing} | ${sold}\n`; });
+  text += '-------------------------------\n';
+  data.forEach(sku=>{
+    let sold=Math.max(0, sku.opening - sku.closing);
+    text+=`${sku.name} | ${sku.opening} | ${sku.closing} | ${sold}\n`;
+  });
   return text;
 }
 
-function generateDailyReport(){ document.getElementById('reportOutput').textContent = formatTableReport('📅 Daily Inventory Report – '+new Date().toLocaleDateString(), skuData); }
+function generateDailyReport(){
+  document.getElementById('reportOutput').textContent = formatTableReport('📅 Daily Inventory Report – '+new Date().toLocaleDateString(), skuData);
+}
+
 function generateSalesReport(){
   let text='📅 Sales Report – '+new Date().toLocaleDateString()+'\nSKU | Sold\n';
-  text += '---------------------\n';
-  skuData.forEach(sku=>{ let sold = sku.opening - sku.closing; text+=`${sku.name} | ${sold}\n`; });
-  document.getElementById('reportOutput').textContent = text;
+  text+='-------------------\n';
+  skuData.forEach(sku=>{ text+=`${sku.name} | ${Math.max(0, sku.opening-sku.closing)}\n`; });
+  document.getElementById('reportOutput').textContent=text;
 }
+
 function generateWeeklySummary(){
   const outlet = document.getElementById('outletSelect').value;
   if(!outlet){ alert('Select an outlet'); return; }
   const daily = JSON.parse(localStorage.getItem(DAILY_KEYS[outlet]) || '[]');
   if(daily.length===0){ document.getElementById('reportOutput').textContent='No weekly data available'; return; }
   let text = '📅 Weekly Summary – Last '+daily.length+' Days\nSKU | Total Sold\n';
-  text += '-------------------------\n';
+  text+='-------------------\n';
   const totals = {};
   DEFAULT_SKUS.forEach(name=>totals[name]=0);
-  daily.forEach(day=>{ day.data.forEach(sku=>{ totals[sku.name] += sku.opening - sku.closing; }); });
+  daily.forEach(day=>{ day.data.forEach(sku=>{ totals[sku.name]+=Math.max(0, sku.opening-sku.closing); }); });
   DEFAULT_SKUS.forEach(name=>text+=`${name} | ${totals[name]}\n`);
   document.getElementById('reportOutput').textContent=text;
 }
 
-document.getElementById('loadBtn').onclick=loadInventory;
-document.getElementById('saveInventory').onclick=saveInventory;
-document.getElementById('dailyReportBtn').onclick=generateDailyReport;
-document.getElementById('salesReportBtn').onclick=generateSalesReport;
-document.getElementById('weeklyReportBtn').onclick=generateWeeklySummary;
-document.getElementById('shareWhatsApp').onclick=()=>{
-  let msg=document.getElementById('reportOutput').textContent;
+function shareWhatsApp(){
+  const msg = document.getElementById('reportOutput').textContent;
+  if(!msg){ alert('Generate a report first'); return; }
   window.open('https://wa.me/?text='+encodeURIComponent(msg));
-};
+}
 
-document.getElementById('shareImageBtn').onclick=function(){
+function shareAsImage(){
   const reportDiv=document.getElementById('reportOutput');
+  if(!reportDiv.textContent.trim()){ alert('Generate a report first'); return; }
   html2canvas(reportDiv, {backgroundColor:'#0f1724'}).then(canvas=>{
     const imgData=canvas.toDataURL('image/png');
     const imgWindow=window.open('', '_blank');
     imgWindow.document.write('<img src="'+imgData+'" style="width:100%;">');
   });
-};
+}
+
+// Event Listeners
+document.getElementById('loadBtn').onclick=loadInventory;
+document.getElementById('saveInventory').onclick=saveInventory;
+document.getElementById('dailyReportBtn').onclick=generateDailyReport;
+document.getElementById('salesReportBtn').onclick=generateSalesReport;
+document.getElementById('weeklyReportBtn').onclick=generateWeeklySummary;
+document.getElementById('shareWhatsApp').onclick=shareWhatsApp;
+document.getElementById('shareImageBtn').onclick=shareAsImage;
 </script>
 
 </div>
