@@ -63,11 +63,17 @@ const DAILY_KEY = 'mochi_daily';
 
 // Render inventory table
 function renderInventory(){
-    let html='';
-    skuData.forEach((sku,i)=>{
-        html+=`<tr><td>${sku.name}</td><td><input type='number' id='open${i}' value='${sku.opening}' min='0'></td><td><input type='number' id='close${i}' value='${sku.closing}' min='0'></td></tr>`;
+    const skuList = document.getElementById('skuList');
+    skuList.innerHTML = '';
+    skuData.forEach((sku, i) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${sku.name}</td>
+            <td><input type="number" min="0" id="open${i}" value="${sku.opening}"></td>
+            <td><input type="number" min="0" id="close${i}" value="${sku.closing}"></td>
+        `;
+        skuList.appendChild(row);
     });
-    document.getElementById('skuList').innerHTML = html;
 }
 
 // Load inventory
@@ -79,19 +85,22 @@ function loadInventory(){
     document.getElementById('reportCard').style.display = 'block';
 }
 
-// Save inventory and carry over closing stock
+// Save inventory
 function saveInventory(){
     skuData.forEach((sku,i)=>{
-        sku.opening = +document.getElementById('open'+i).value || 0;
-        sku.closing = +document.getElementById('close'+i).value || 0;
+        sku.opening = parseInt(document.getElementById('open'+i).value) || 0;
+        sku.closing = parseInt(document.getElementById('close'+i).value) || 0;
     });
+
     localStorage.setItem(STORAGE_KEY, JSON.stringify(skuData));
-    
+
+    // Save daily snapshot
     const daily = JSON.parse(localStorage.getItem(DAILY_KEY) || '[]');
     daily.push({date:new Date().toISOString().slice(0,10), data: JSON.parse(JSON.stringify(skuData))});
     if(daily.length>7) daily.shift();
     localStorage.setItem(DAILY_KEY, JSON.stringify(daily));
-    
+
+    // Carry over closing stock
     skuData.forEach(sku => { sku.opening = sku.closing; sku.closing = 0; });
     renderInventory();
     alert('Inventory saved and closing stock carried over to next day.');
@@ -114,19 +123,19 @@ function formatBoxedTableReport(title, data){
     return text;
 }
 
-// Generate daily report
+// Daily report
 function generateCombinedReport(){
     document.getElementById('reportOutput').textContent = formatBoxedTableReport('📅 Daily Inventory & Sales Report – ' + new Date().toLocaleDateString(), skuData);
 }
 
-// Generate weekly summary
+// Weekly summary
 function generateWeeklySummary(){
     const daily = JSON.parse(localStorage.getItem(DAILY_KEY) || '[]');
     if(daily.length===0){ 
         document.getElementById('reportOutput').textContent='No weekly data available'; 
         return; 
     }
-    
+
     const totals = {};
     const lastDayClosing = {};
     DEFAULT_SKUS.forEach(name => { totals[name] = 0; lastDayClosing[name] = 0; });
@@ -148,7 +157,7 @@ function generateWeeklySummary(){
     document.getElementById('reportOutput').textContent = formatBoxedTableReport('📅 Weekly Inventory & Sales Summary – Last '+daily.length+' Days', summaryData);
 }
 
-// Share report as image (manual upload to WhatsApp)
+// Share report as image (WhatsApp/manual download)
 function shareReportAsImageWhatsApp(){
     const reportDiv = document.getElementById('reportOutput');
     if(!reportDiv.textContent.trim() || reportDiv.textContent==='Please generate a report...'){ 
@@ -165,7 +174,7 @@ function shareReportAsImageWhatsApp(){
     });
 }
 
-// Export report as image
+// Share as image (general)
 function shareAsImage(){
     const reportDiv=document.getElementById('reportOutput');
     if(!reportDiv.textContent.trim() || reportDiv.textContent==='Please generate a report...'){ alert('Generate a report first'); return; }
