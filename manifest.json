@@ -1,0 +1,21 @@
+{
+  "name": "Mochi Inventory",
+  "short_name": "MochiInventory",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#B6F0D1",
+  "theme_color": "#B6F0D1",
+  "description": "Mochi Inventory Management App",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
