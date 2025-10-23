@@ -1,21 +1,22 @@
 {
   "name": "Mochi Inventory",
   "short_name": "Mochi",
-  "start_url": "./index.html",
+  "description": "Daily mochi ice cream inventory tracker.",
+  "start_url": "index.html",
   "display": "standalone",
-  "background_color": "#B6F0D1",
-  "theme_color": "#B6F0D1",
-  "description": "A clean pastel inventory tracker with daily reports and WhatsApp sharing.",
+  "background_color": "#E6FFFA",
+  "theme_color": "#B2F5EA",
+  "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "icons/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png"
+      "src": "icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
     },
     {
-      "src": "icons/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png"
+      "src": "icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
     }
   ]
 }
