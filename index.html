@@ -1,491 +1,250 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mochi Inventory</title>
-    
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#E6FFFA">
-    <link rel="apple-touch-icon" href="icon-192.png">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Mochi Inventory — Debugged</title>
 
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
-
-    <style>
-        :root {
-            --font-main: 'Inter', sans-serif;
-            --color-bg: #F8F9FA;
-            --color-card-bg: #FFFFFF;
-            --color-primary-light: #E6FFFA; /* Mint */
-            --color-primary-dark: #38A169;
-            --color-primary-hover: #2F855A;
-            --color-secondary: #F0E7FF; /* Lavender */
-            --color-border: #E0E7FF; /* Pastel Blue/Lavender */
-            --color-text: #2D3748;
-            --color-text-light: #4A5568;
-            --color-border-light: #E2E8F0;
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
-        body {
-            font-family: var(--font-main);
-            background-color: var(--color-bg);
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            min-height: 100vh;
-            padding: 20px 10px;
-        }
-
-        .app-container {
-            background-color: var(--color-card-bg);
-            border: 4px solid var(--color-border);
-            border-radius: 16px;
-            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.05);
-            padding: 24px;
-            max-width: 700px;
-            width: 100%;
-            margin: 20px 0;
-        }
-
-        h1 {
-            color: var(--color-text);
-            text-align: center;
-            margin-top: 0;
-            margin-bottom: 16px;
-            font-size: 1.75rem;
-            font-weight: 600;
-        }
-
-        h2 {
-            color: var(--color-text-light);
-            font-size: 1rem;
-            font-weight: 400;
-            border-bottom: 2px solid var(--color-primary-light);
-            padding-bottom: 8px;
-            margin-bottom: 20px;
-        }
-
-        .inventory-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
-        }
-
-        .inventory-table th,
-        .inventory-table td {
-            border: 1px solid var(--color-border-light);
-            padding: 12px;
-            text-align: left;
-            vertical-align: middle;
-        }
-
-        .inventory-table th {
-            background-color: var(--color-primary-light);
-            font-weight: 600;
-        }
-
-        .inventory-table td:first-child {
-            font-weight: 600;
-            color: var(--color-text);
-        }
-
-        input[type="number"] {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid var(--color-border-light);
-            border-radius: 6px;
-            font-family: var(--font-main);
-            font-size: 1rem;
-            -moz-appearance: textfield; /* Hide spinners on Firefox */
-        }
-
-        /* Hide spinners on Chrome, Safari, Edge */
-        input[type="number"]::-webkit-outer-spin-button,
-        input[type="number"]::-webkit-inner-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
-        }
-
-        #share-report-btn {
-            width: 100%;
-            padding: 14px;
-            margin-top: 24px;
-            background-color: var(--color-primary-dark);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-family: var(--font-main);
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background-color 0.2s ease;
-        }
-
-        #share-report-btn:hover {
-            background-color: var(--color-primary-hover);
-        }
-
-        /* Toast Notification */
-        #toast {
-            visibility: hidden;
-            opacity: 0;
-            min-width: 280px;
-            background-color: #333;
-            color: #fff;
-            text-align: center;
-            border-radius: 4px;
-            padding: 16px;
-            position: fixed;
-            z-index: 10;
-            left: 50%;
-            bottom: 30px;
-            transform: translateX(-50%);
-            transition: visibility 0s, opacity 0.5s ease-out;
-            font-size: 0.95rem;
-        }
-
-        #toast.show {
-            visibility: visible;
-            opacity: 1;
-        }
-
-    </style>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --cream:#fffaf0; --card:#fff; --muted:#233; --accent1:#ff9aa2; --accent2:#ffd1dc; --mint:#B6F0D1; --lavender:#E7D7FF;
+}
+body{margin:0;background:linear-gradient(180deg,var(--cream),#fff9f4);font-family:Inter,Arial,sans-serif;color:var(--muted);-webkit-font-smoothing:antialiased}
+.container{max-width:720px;margin:12px auto;padding:14px}
+.panel{background:var(--card);border-radius:12px;padding:14px;box-shadow:0 8px 20px rgba(16,24,40,0.06)}
+.header{display:flex;align-items:center;justify-content:space-between}
+.title{font-weight:700;font-size:18px}
+.table-wrapper{overflow:auto;margin-top:10px;border-radius:8px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{padding:10px;border:1px solid rgba(16,24,40,0.06);text-align:center}
+th{background:var(--mint);font-weight:600}
+input[type=number]{width:100%;padding:8px;border-radius:8px;border:1px solid rgba(16,24,40,0.06);background:#fbfbfb}
+.row{display:flex;gap:8px;margin-top:12px}
+.btn{flex:1;padding:12px;border-radius:10px;border:0;background:linear-gradient(180deg,var(--accent1),var(--accent2));color:#fff;font-weight:700;cursor:pointer}
+.btn.secondary{background:linear-gradient(180deg,#9ee8c7,#bff7db);color:#073b2a}
+.report{margin-top:12px;padding:12px;border-radius:8px;background:transparent}
+pre#reportOutput{font-family:"Courier New",monospace;white-space:pre;overflow:auto;font-size:13px;color:var(--muted);margin:0}
+.status{margin-top:12px;font-size:13px;color:#475569}
+.debug{margin-top:10px;padding:8px;border-radius:8px;background:#f3f4f6;color:#111;max-height:140px;overflow:auto;font-size:12px}
+.small{font-size:12px;color:#6b7280;margin-top:8px}
+.share-card{width:1200px;background:linear-gradient(180deg,#ffffff,#fff9f4);padding:28px;border-radius:18px;border:8px solid var(--lavender);box-sizing:border-box;color:#111827}
+.share-title{font-size:28px;font-weight:700;margin-bottom:6px}
+.share-sub{font-size:14px;color:#374151;margin-bottom:10px}
+.share-pre{font-family:"Courier New",monospace;white-space:pre;font-size:18px;line-height:1.2;color:#111827;margin:0}
+@media (max-width:520px){.title{font-size:16px}.btn{padding:10px}}
+</style>
 </head>
 <body>
+  <div class="container">
+    <div class="panel">
+      <div class="header">
+        <div class="title">🍨 Mochi Inventory — Simplified</div>
+        <div style="font-size:13px;color:#64748b">One-click flow: Generate → Share</div>
+      </div>
 
-    <div class="app-container">
-        <h1>🍨 Mochi — Inventory</h1>
-        <h2>Daily Stock: <span id="current-date"></span></h2>
+      <div id="inventoryArea" class="table-wrapper">
+        <table id="skuTable" aria-hidden="false">
+          <thead><tr><th>SKU</th><th>Opening</th><th>Closing</th></tr></thead>
+          <tbody id="skuList"></tbody>
+        </table>
+      </div>
 
-        <table class="inventory-table">
-            <thead>
-                <tr>
-                    <th>SKU</th>
-                    <th>Opening</th>
-                    <th>Closing</th>
-                </tr>
-            </thead>
-            <tbody id="inventory-body">
-                </tbody>
-        </table>
+      <div class="row">
+        <button id="generateBtn" class="btn">Generate & Save</button>
+        <button id="shareBtn" class="btn secondary">Share (WhatsApp)</button>
+      </div>
 
-        <button id="share-report-btn">Generate & Share Report</button>
-    </div>
+      <div class="report">
+        <pre id="reportOutput">No report yet — press Generate & Save.</pre>
+      </div>
 
-    <div id="toast"></div>
+      <div class="status" id="statusLine">Status: ready</div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            // --- 1. CONFIG & CONSTANTS ---
-            const SKUS = [
-                'Vanilla', 'Strawberry', 'Chocolate', 'Mango', 'Grape',
-                'Muskmelon', 'Coconut', 'Brownie', 'Paan'
-            ];
-            const STORAGE_KEY = 'mochiInventoryData';
-            const LOW_STOCK_THRESHOLD = 15;
+      <div class="small">Best test environment: Chrome on Android (supports image+text share). If share fails, check debug box below.</div>
 
-            // --- 2. DOM ELEMENTS ---
-            const inventoryBody = document.getElementById('inventory-body');
-            const shareBtn = document.getElementById('share-report-btn');
-            const dateDisplay = document.getElementById('current-date');
-            const toastEl = document.getElementById('toast');
+      <div class="debug" id="debugBox">Debug logs will appear here.</div>
+    </div>
+  </div>
 
-            let appData = {
-                inventory: {}
-            };
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script>
+/* ---------- utils ---------- */
+const logDebug = (msg)=>{ const el=document.getElementById('debugBox'); el.textContent = (new Date()).toLocaleTimeString() + ' • ' + msg + '\n' + el.textContent; console.log(msg); };
+const setStatus = (s)=>{ document.getElementById('statusLine').textContent = 'Status: ' + s; logDebug(s); };
+const safeInt = v => { const n = parseInt(v); return Number.isNaN(n) ? 0 : n; };
+const wait = ms => new Promise(r=>setTimeout(r,ms));
+const canvasToBlob = (canvas, type='image/png', q=0.92) => new Promise(res=>canvas.toBlob(b=>res(b), type, q));
 
-            // --- 3. CORE LOGIC (DATA & STATE) ---
+/* ---------- data ---------- */
+const DEFAULT_SKUS = ['Vanilla','Strawberry','Chocolate','Mango','Grape','Muskmelon','Coconut','Brownie','Paan'];
+const STORAGE_KEY = 'mochi_inventory';
+const DAILY_KEY = 'mochi_daily';
+let skuData = [];
 
-            /**
-             * Gets today's date in 'YYYY-MM-DD' format.
-             */
-            function getTodayISO() {
-                return new Date().toISOString().split('T')[0];
-            }
+/* ---------- UI render ---------- */
+function renderInventory(){
+  const tbody = document.getElementById('skuList');
+  tbody.innerHTML = '';
+  skuData.forEach((s,i)=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${s.name}</td>
+      <td><input id="open${i}" type="number" min="0" value="${s.opening}"></td>
+      <td><input id="close${i}" type="number" min="0" value="${s.closing}"></td>`;
+    tbody.appendChild(tr);
+  });
+}
 
-            /**
-             * Loads inventory from localStorage.
-             * If data is from a previous day, it rolls over closing stock to opening stock.
-             */
-            function loadInventory() {
-                const savedData = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-                const todayISO = getTodayISO();
-                const savedInventory = savedData.inventory || {};
-                let newInventory = {};
+/* ---------- load ---------- */
+function loadInventory(){
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    skuData = saved ? JSON.parse(saved) : DEFAULT_SKUS.map(n=>({name:n, opening:0, closing:0}));
+    renderInventory();
+    setStatus('Inventory loaded');
+  } catch(e){
+    console.error(e); setStatus('Failed to load inventory'); logDebug('loadInventory error: ' + e);
+  }
+}
+loadInventory();
 
-                if (savedData.lastUpdated === todayISO) {
-                    // Data is from today, just load it
-                    newInventory = savedInventory;
-                } else {
-                    // Data is old or non-existent, roll over closing stock
-                    SKUS.forEach(sku => {
-                        const yesterdayData = savedInventory[sku] || { opening: 0, closing: 0 };
-                        newInventory[sku] = {
-                            opening: yesterdayData.closing, // Core logic
-                            closing: 0 
-                        };
-                    });
-                }
-                
-                // Ensure all SKUs are present
-                SKUS.forEach(sku => {
-                    if (!newInventory[sku]) {
-                        newInventory[sku] = { opening: 0, closing: 0 };
-                    }
-                });
+/* ---------- format ---------- */
+function formatBoxedTableWithLowStock(title, data){
+  const pad = (s,len)=> s.toString().padEnd(len,' ');
+  const skuLen=14, openLen=8, closeLen=8, soldLen=6;
+  let t = title + '\n';
+  t += '┌'+'─'.repeat(skuLen)+'┬'+'─'.repeat(openLen)+'┬'+'─'.repeat(closeLen)+'┬'+'─'.repeat(soldLen)+'┐\n';
+  t += '│'+pad('SKU',skuLen)+'│'+pad('Opening',openLen)+'│'+pad('Closing',closeLen)+'│'+pad('Sold',soldLen)+'│\n';
+  t += '├'+'─'.repeat(skuLen)+'┼'+'─'.repeat(openLen)+'┼'+'─'.repeat(closeLen)+'┼'+'─'.repeat(soldLen)+'┤\n';
+  const low=[];
+  data.forEach(sku=>{
+    const sold = Math.max(0,(sku.opening||0)-(sku.closing||0));
+    if((sku.closing||0) < 15) low.push(sku.name);
+    t += '│'+pad(sku.name,skuLen)+'│'+pad(sku.opening,openLen)+'│'+pad(sku.closing,closeLen)+'│'+pad(sold,soldLen)+'│\n';
+  });
+  t += '└'+'─'.repeat(skuLen)+'┴'+'─'.repeat(openLen)+'┴'+'─'.repeat(closeLen)+'┴'+'─'.repeat(soldLen)+'┘\n';
+  if(low.length) t += '\n⚠ Low Stock – To be Fulfilled: ' + low.join(', ');
+  return t;
+}
 
-                appData.inventory = newInventory;
-                saveInventory(); // Save the potentially new "opening" stocks
-            }
+/* ---------- build share card ---------- */
+function buildShareCardDOM(reportText){
+  const wrapper = document.createElement('div');
+  wrapper.className='share-card';
+  wrapper.style.cssText = 'width:1200px;background:linear-gradient(180deg,#ffffff,#fff9f4);padding:28px;border-radius:18px;border:8px solid #E7D7FF;box-sizing:border-box;color:#111827';
+  const title = document.createElement('div'); title.className='share-title'; title.textContent='Daily Inventory Report';
+  const sub = document.createElement('div'); sub.className='share-sub'; sub.textContent = new Date().toLocaleDateString();
+  const pre = document.createElement('pre'); pre.className='share-pre'; pre.style.margin='0'; pre.textContent = reportText;
+  wrapper.appendChild(title); wrapper.appendChild(sub); wrapper.appendChild(pre);
+  return wrapper;
+}
 
-            /**
-             * Saves the current appData state to localStorage.
-             */
-            function saveInventory() {
-                const dataToSave = {
-                    lastUpdated: getTodayISO(),
-                    inventory: appData.inventory
-                };
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
-            }
+/* ---------- generate report ---------- */
+function generateReport(){
+  try{
+    skuData.forEach((s,i)=>{
+      s.opening = safeInt(document.getElementById('open'+i).value);
+      s.closing = safeInt(document.getElementById('close'+i).value);
+    });
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(skuData));
+    // daily snapshot
+    const daily = JSON.parse(localStorage.getItem(DAILY_KEY) || '[]');
+    daily.push({date:new Date().toISOString().slice(0,10), data: JSON.parse(JSON.stringify(skuData))});
+    if(daily.length>7) daily.shift();
+    localStorage.setItem(DAILY_KEY, JSON.stringify(daily));
+    // build text
+    const title = '📅 Daily Inventory & Sales Report – ' + new Date().toLocaleDateString();
+    const text = formatBoxedTableWithLowStock(title, skuData);
+    document.getElementById('reportOutput').textContent = text;
+    // carry over immediately
+    skuData.forEach(s=>{ s.opening = s.closing; s.closing = 0; });
+    renderInventory();
+    setStatus('Report generated & saved');
+    return text;
+  } catch(e){
+    console.error(e); setStatus('Generate failed'); logDebug('generateReport error: ' + e);
+    throw e;
+  }
+}
 
-            /**
-             * Updates the in-memory data when an input changes.
-             */
-            function handleInputChange(sku, type, value) {
-                const numValue = parseInt(value) || 0;
-                if (appData.inventory[sku]) {
-                    appData.inventory[sku][type] = numValue;
-                }
-                saveInventory(); // Auto-save on every input
-            }
+/* ---------- share (text + image) ---------- */
+async function shareHandler(){
+  try{
+    setStatus('Preparing report...');
+    const reportText = generateReport(); // saves & updates UI
+    setStatus('Rendering image (fonts will load) ...');
+    const card = buildShareCardDOM(reportText);
+    card.style.position='fixed'; card.style.left='-10000px'; card.style.top='0';
+    document.body.appendChild(card);
 
-            // --- 4. UI & RENDERING ---
+    // ensure fonts loaded
+    if(document.fonts && document.fonts.ready){
+      await document.fonts.ready;
+      logDebug('document.fonts.ready resolved');
+    } else {
+      await wait(120);
+      logDebug('no document.fonts API, used timeout');
+    }
 
-            /**
-             * Displays the current date in a user-friendly format.
-             */
-            function displayDate() {
-                const today = new Date();
-                dateDisplay.textContent = today.toLocaleDateString('en-US', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                });
-            }
+    // small delay to ensure layout
+    await wait(80);
 
-            /**
-             * Renders the main inventory table from appData.
-             */
-            function renderTable() {
-                inventoryBody.innerHTML = '';
-                SKUS.forEach(sku => {
-                    const item = appData.inventory[sku];
-                    const tr = document.createElement('tr');
+    const canvas = await html2canvas(card, {
+      backgroundColor: null,
+      scale: 2.5,
+      useCORS: true,
+      width: card.scrollWidth,
+      windowWidth: card.scrollWidth + 40
+    });
+    document.body.removeChild(card);
 
-                    tr.innerHTML = `
-                        <td>${sku}</td>
-                        <td>
-                            <input type="number" class="stock-input" id="opening-${sku}" 
-                                   data-sku="${sku}" data-type="opening" 
-                                   value="${item.opening}" pattern="[0-9]*">
-                        </td>
-                        <td>
-                            <input type="number" class="stock-input" id="closing-${sku}" 
-                                   data-sku="${sku}" data-type="closing" 
-                                   value="${item.closing}" pattern="[0-9]*">
-                        </td>
-                    `;
-                    inventoryBody.appendChild(tr);
-                });
+    const blob = await canvasToBlob(canvas, 'image/png');
+    if(!blob) throw new Error('Canvas to blob returned null');
 
-                // Add event listeners to new inputs
-                document.querySelectorAll('.stock-input').forEach(input => {
-                    input.addEventListener('input', (e) => {
-                        handleInputChange(e.target.dataset.sku, e.target.dataset.type, e.target.value);
-                    });
-                });
-            }
+    const file = new File([blob], `Mochi_Report_${(new Date()).toISOString().slice(0,10)}.png`, { type: 'image/png' });
+    setStatus('Image ready — checking share support');
 
-            /**
-             * Shows a toast notification.
-             */
-            function showToast(message) {
-                toastEl.textContent = message;
-                toastEl.className = 'toast show';
-                setTimeout(() => {
-                    toastEl.className = 'toast';
-                }, 3000);
-            }
+    // check capability
+    if(navigator.canShare && navigator.canShare({ files: [file] })){
+      setStatus('Sharing via navigator.share ...');
+      try{
+        await navigator.share({ title: 'Daily Inventory Report', text: reportText, files: [file] });
+        setStatus('Share completed');
+        logDebug('navigator.share resolved successfully');
+        return;
+      } catch (e){
+        logDebug('navigator.share threw: ' + e);
+        // fall through to wa.me fallback
+      }
+    } else {
+      logDebug('navigator.canShare not available for files on this browser');
+    }
 
-            // --- 5. REPORTING & SHARING ---
+    // fallback: open WhatsApp web with text prefilled
+    setStatus('Opening WhatsApp Web with text (fallback)');
+    const waUrl = `https://wa.me/?text=${encodeURIComponent(reportText)}`;
+    window.open(waUrl, '_blank');
 
-            /**
-             * Generates the plain text report.
-             */
-            function generateReportText() {
-                let report = `🍨 Mochi Daily Report 🍨\n`;
-                report += `Date: ${new Date().toLocaleDateString('en-GB')}\n\n`; // DD/MM/YYYY
-                report += `+-----------+-------+-------+------+\n`;
-                report += `| SKU       | Open  | Close | Sold |\n`;
-                report += `+-----------+-------+-------+------+\n`;
+  } catch(err){
+    console.error(err);
+    logDebug('shareHandler error: ' + err);
+    setStatus('Share failed — see debug log');
+    alert('Sharing failed. For best experience use Chrome on Android (supports sharing files + text). See debug log for details.');
+  }
+}
 
-                let lowStock = [];
-                SKUS.forEach(sku => {
-                    const item = appData.inventory[sku];
-                    const sold = Math.max(0, item.opening - item.closing);
-                    if (item.closing < LOW_STOCK_THRESHOLD) {
-                        lowStock.push(sku);
-                    }
+/* ---------- wire UI ---------- */
+document.getElementById('generateBtn').addEventListener('click', ()=>{ try{ generateReport(); alert('Report generated and saved. Press Share to send.'); }catch(e){ alert('Generate failed — see debug'); }});
+document.getElementById('shareBtn').addEventListener('click', shareHandler);
 
-                    const skuCol = sku.padEnd(10);
-                    const openCol = String(item.opening).padEnd(6);
-                    const closeCol = String(item.closing).padEnd(6);
-                    const soldCol = String(sold).padEnd(5);
-
-                    report += `| ${skuCol}| ${openCol}| ${closeCol}| ${soldCol}|\n`;
-                });
-
-                report += `+-----------+-------+-------+------+\n\n`;
-
-                if (lowStock.length > 0) {
-                    report += `⚠ Low Stock – To be Fulfilled:\n${lowStock.join(', ')}`;
-                } else {
-                    report += `✅ All items stocked.`;
-                }
-                return report;
-            }
-
-            /**
-             * Creates a pastel image card with the report text on it.
-             * @returns {Promise<Blob>} A promise that resolves with the image Blob.
-             */
-            function createReportImage(text) {
-                return new Promise((resolve) => {
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
-                    
-                    const lines = text.split('\n');
-                    const lineHeight = 22;
-                    const padding = 30;
-
-                    // Landscape dimensions
-                    canvas.width = 800;
-                    canvas.height = (lines.length * lineHeight) + (padding * 2);
-                    if (canvas.height < 450) canvas.height = 450; // Min height
-
-                    // Pastel background (Lavender)
-                    ctx.fillStyle = '#F0E7FF';
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-                    // Pastel frame (Mint)
-                    ctx.strokeStyle = '#B2F5EA';
-                    ctx.lineWidth = 15;
-                    ctx.strokeRect(0, 0, canvas.width, canvas.height);
-
-                    // Draw text
-                    ctx.fillStyle = '#333';
-                    let y = padding + 15; // Start y-position
-
-                    lines.forEach((line, index) => {
-                        if (index === 0) { // Title
-                            ctx.font = 'bold 22px Inter';
-                        } else if (line.startsWith('+--') || line.startsWith('| SKU')) { // Table
-                            ctx.font = '16px "Courier New", Courier, monospace';
-                        } else { // Regular text
-                            ctx.font = '16px Inter';
-                        }
-                        ctx.fillText(line, padding, y);
-                        y += lineHeight;
-                    });
-
-                    canvas.toBlob(resolve, 'image/png');
-                });
-            }
-
-            /**
-             * Main share function: generates report, creates image, and uses Web Share API.
-             */
-            async function generateAndShareReport() {
-                shareBtn.disabled = true;
-                shareBtn.textContent = 'Generating...';
-
-                try {
-                    const reportText = generateReportText();
-                    const reportImageBlob = await createReportImage(reportText);
-                    
-                    const reportFile = new File([reportImageBlob], 'mochi-report.png', {
-                        type: 'image/png',
-                    });
-
-                    const shareData = {
-                        text: reportText,
-                        title: `Mochi Report - ${getTodayISO()}`,
-                        files: [reportFile]
-                    };
-
-                    if (navigator.canShare && navigator.canShare({ files: [reportFile] })) {
-                        // --- 1. Ideal: Share text + image ---
-                        await navigator.share(shareData);
-                        showToast('Report shared successfully!');
-                    } else if (navigator.share) {
-                        // --- 2. Fallback: Share text only ---
-                        showToast('Image sharing not supported, sharing text.');
-                        await navigator.share({
-                            text: reportText,
-                            title: shareData.title
-                        });
-                    } else {
-                        // --- 3. Final Fallback: WhatsApp text link ---
-                        showToast('Web Share not supported. Opening WhatsApp...');
-                        const whatsappUrl = `whatsapp://send?text=${encodeURIComponent(reportText)}`;
-                        window.open(whatsappUrl, '_blank');
-                    }
-
-                } catch (err) {
-                    console.error('Share error:', err);
-                    if (err.name !== 'AbortError') {
-                        showToast('Error sharing report.');
-                    }
-                } finally {
-                    shareBtn.disabled = false;
-                    shareBtn.textContent = 'Generate & Share Report';
-                }
-            }
-
-            // --- 6. PWA SERVICE WORKER REGISTRATION ---
-            function registerServiceWorker() {
-                if ('serviceWorker' in navigator) {
-                    window.addEventListener('load', () => {
-                        navigator.serviceWorker.register('service-worker.js')
-                            .then(registration => {
-                                console.log('ServiceWorker registered: ', registration);
-                            })
-                            .catch(error => {
-                                console.log('ServiceWorker registration failed: ', error);
-                            });
-                    });
-                }
-            }
-
-            // --- 7. INITIALIZATION ---
-            function init() {
-                registerServiceWorker();
-                displayDate();
-                loadInventory();
-                renderTable();
-                shareBtn.addEventListener('click', generateAndShareReport);
-            }
-
-            init();
-        });
-    </script>
+/* ---------- service worker register (optional) ---------- */
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('service-worker.js')
+      .then(reg => logDebug('Service worker registered: ' + reg.scope))
+      .catch(err => logDebug('Service worker register failed: ' + err));
+  });
+}
+</script>
 </body>
 </html>
